@@ -469,36 +469,42 @@ that represents
     public Identifier addIdentifier();
     public Patient addIdentifier(Identifier);
     public Identifier getIdentifierFirstRep();
+
     public BooleanType getActiveElement();
     public boolean hasActiveElement();
     public boolean hasActive();
     public Patient setActiveElement(BooleanType);
     public boolean getActive();
     public Patient setActive(boolean);
+
     public List&lt;HumanName&gt; getName();
     public Patient setName(List&lt;HumanName&gt;);
     public boolean hasName();
     public HumanName addName();
     public Patient addName(HumanName);
     public HumanName getNameFirstRep();
+
     public List&lt;ContactPoint&gt; getTelecom();
     public Patient setTelecom(List&lt;ContactPoint&gt;);
     public boolean hasTelecom();
     public ContactPoint addTelecom();
     public Patient addTelecom(ContactPoint);
     public ContactPoint getTelecomFirstRep();
+
     public Enumeration&lt;Enumerations$AdministrativeGender&gt; getGenderElement();
     public boolean hasGenderElement();
     public boolean hasGender();
     public Patient setGenderElement(Enumeration&lt;Enumerations$AdministrativeGender&gt;);
     public Enumerations$AdministrativeGender getGender();
     public Patient setGender(Enumerations$AdministrativeGender);
+
     public DateType getBirthDateElement();
     public boolean hasBirthDateElement();
     public boolean hasBirthDate();
     public Patient setBirthDateElement(DateType);
     public Date getBirthDate();
     public Patient setBirthDate(Date);
+
     public Type getDeceased();
     public BooleanType getDeceasedBooleanType() throws FHIRException;
     public boolean hasDeceasedBooleanType();
@@ -506,15 +512,18 @@ that represents
     public boolean hasDeceasedDateTimeType();
     public boolean hasDeceased();
     public Patient setDeceased(Type);
+
     public List&lt;Address&gt; getAddress();
     public Patient setAddress(List&lt;Address&gt;);
     public boolean hasAddress();
     public Address addAddress();
     public Patient addAddress(Address);
     public Address getAddressFirstRep();
+
     public CodeableConcept getMaritalStatus();
     public boolean hasMaritalStatus();
     public Patient setMaritalStatus(CodeableConcept);
+
     public Type getMultipleBirth();
     public BooleanType getMultipleBirthBooleanType() throws FHIRException;
     public boolean hasMultipleBirthBooleanType();
@@ -522,24 +531,28 @@ that represents
     public boolean hasMultipleBirthIntegerType();
     public boolean hasMultipleBirth();
     public Patient setMultipleBirth(Type);
+
     public List&lt;Attachment&gt; getPhoto();
     public Patient setPhoto(List&lt;Attachment&gt;);
     public boolean hasPhoto();
     public Attachment addPhoto();
     public Patient addPhoto(Attachment);
     public Attachment getPhotoFirstRep();
+
     public List&lt;Patient$ContactComponent&gt; getContact();
     public Patient setContact(List&lt;Patient$ContactComponent&gt;);
     public boolean hasContact();
     public Patient$ContactComponent addContact();
     public Patient addContact(Patient$ContactComponent);
     public Patient$ContactComponent getContactFirstRep();
+
     public List&lt;Patient$PatientCommunicationComponent&gt; getCommunication();
     public Patient setCommunication(List&lt;Patient$PatientCommunicationComponent&gt;);
     public boolean hasCommunication();
     public Patient$PatientCommunicationComponent addCommunication();
     public Patient addCommunication(Patient$PatientCommunicationComponent);
     public Patient$PatientCommunicationComponent getCommunicationFirstRep();
+
     public List&lt;Reference&gt; getGeneralPractitioner();
     public Patient setGeneralPractitioner(List&lt;Reference&gt;);
     public boolean hasGeneralPractitioner();
@@ -547,17 +560,20 @@ that represents
     public Patient addGeneralPractitioner(Reference);
     public Reference getGeneralPractitionerFirstRep();
     public List&lt;Resource&gt; getGeneralPractitionerTarget();
+
     public Reference getManagingOrganization();
     public boolean hasManagingOrganization();
     public Patient setManagingOrganization(Reference);
     public Organization getManagingOrganizationTarget();
     public Patient setManagingOrganizationTarget(Organization);
+
     public List&lt;Patient$PatientLinkComponent&gt; getLink();
     public Patient setLink(List&lt;Patient$PatientLinkComponent&gt;);
     public boolean hasLink();
     public Patient$PatientLinkComponent addLink();
     public Patient addLink(Patient$PatientLinkComponent);
     public Patient$PatientLinkComponent getLinkFirstRep();
+
     protected void listChildren(List&lt;Property&gt;);
     public Property getNamedProperty(int, String, boolean) throws FHIRException;
     public Base[] getProperty(int, String, boolean) throws FHIRException;
@@ -1027,7 +1043,7 @@ Chapter 2: Working with Creational Patterns.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-12-04 18:03:58 -0600
+Last updated 2022-12-04 19:27:26 -0600
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
