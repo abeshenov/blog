@@ -1,4 +1,6 @@
 = Data transfer objects, records, and data classes
+:author: Alexey Beshenov
+:docdatetime: 2022-12-04T00:00-06:00
 :source-highlighter: highlightjs
 :highlightjs-languages: java, kotlin
 :toc:
@@ -18,7 +20,7 @@ which works well for defining data structures.
 But here we will talk about Java, where historically working with data transfer
 objects was clumsy.
 
-image::cover.jpg[]
+image::data-classes-cover.jpg[]
 
 In Java, data transfer objects are often called *POJOs* (plain old Java objects),
 or *JavaBeans* (name coming from an
@@ -762,6 +764,47 @@ This is a good example of how design patterns (builder) become obsolete
 when the problem is already solved by the language
 (named arguments and default values for them).
 
+The `componentN()` functions are used internally for
+link:https://kotlinlang.org/docs/destructuring-declarations.html[destructuring].
+The destructuring is by position. The code like
+
+[source, kotlin]
+----
+val (id, login, email) = user
+----
+
+will compile to
+
+[source, kotlin]
+----
+val id    = user.component1()
+val login = user.component2()
+val email = user.component3()
+----
+
+This feature works well with types like
+link:https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/-entry/[`Entry<K,V>`]
+for map entries, so you can do things like
+
+[source, kotlin]
+----
+val myMap = mapOf("foo" to 1, "bar" to 2, "baz" to 3)
+
+myMap.forEach { (k,v) -> println("$k : $v") }
+
+for ((k,v) in myMap) {
+    println("$k : $v")
+}
+----
+
+Similarly, destructuring is handy for simple types like
+link:https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-pair/[`Pair<A,B>`].
+
+I see how this can work for established coordinate systems, like 3D coordinates
+(x,y,z), or color coordinates like RGB / HSL / etc. But for most data classes
+this kind of destructuring based on argument position can lead to confusing
+code, unless there is some natural order of fields.
+
 
 == References
 
@@ -776,5 +819,7 @@ Chapter 2: Working with Creational Patterns.
 - link:https://kotlinlang.org/docs/data-classes.html[Data classes in Kotlin].
 
 - link:https://kotlinlang.org/docs/functions.html[Named and default arguments for functions in Kotlin].
+
+- link:https://kotlinlang.org/docs/destructuring-declarations.html#destructuring-in-lambdas[Destructuring declarations in Kotlin]
 
 - link:https://refactoring.guru/design-patterns/builder[Builder pattern].

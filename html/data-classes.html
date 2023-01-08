@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.12">
+<meta name="author" content="Alexey Beshenov">
+<title>Data transfer objects, records, and data classes</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500;1,700;1,800&display=swap');
+
+@import url(https://cdn.jsdelivr.net/gh/asciidoctor/asciidoctor@2.0/data/stylesheets/asciidoctor-default.css);
+/* Default asciidoc style framework - important */
+
+/* CUSTOMISATIONS */
+/* Change the values in root for quick customisation. If you want even more fine grain... venture further. */
+
+:root {
+  --primarycolor: #000000;
+  --secondarycolor: #000000;
+  --tertiarycolor: #000000;
+  --sidebarbackground: rgba(0,0,0,5%);
+  --linkcolor: #2156a5;
+  --linkcolorvisited: #5221a6;
+  --linkcoloralternate: #f44336;
+  --codebackground: rgba(0,0,0,5%);
+}
+
+body {
+/*  background: #efe9dd; */
+    border-top: solid hsl(50, 100%, 58%) 3rem;
+    background: hsl(50, 100%, 80%);
+}
+
+a:link {
+  color: var(--linkcolor) !important;
+  text-decoration: underline !important;
+}
+
+a:visited {
+  color: var(--linkcolorvisited) !important;
+  text-decoration: underline !important;
+}
+
+a:hover {
+  color: var(--linkcoloralternate) !important;
+  text-decoration: none !important;
+}
+
+body {
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* Text styles */
+h1 {
+  color: var(--primarycolor) !important;
+  text-transform: uppercase;
+}
+
+h2,
+h3,
+h4,
+h5,
+h6,
+#toctitle {
+  color: var(--secondarycolor) !important;
+}
+
+pre, code {
+    background: var(--codebackground) !important
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+#toctitle {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: bold !important;
+}
+
+.title {
+  color: var(--tertiarycolor) !important;
+  font-family: "JetBrains Mono", monospace !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+}
+
+.sectlevel1 {
+  font-family: "JetBrains Mono", monospace !important;
+}
+
+.sectlevel2 {
+  font-family: "JetBrains Mono", monospace !important;
+}
+
+/* Responsiveness fixes */
+video {
+  max-width: 100%;
+}
+
+@media all and (max-width: 600px) {
+  table {
+    width: 55vw !important;
+    font-size: 3vw;
+  }
+}
+
+#toc {
+  border-top: solid #000 5px !important;
+  border-bottom: solid #000 5px !important;
+}
+
+.sect1 {
+  border-top: solid #000 5px !important;  
+}
+
+table,
+table thead, table tfoot,
+table.tableblock, th.tableblock, td.tableblock {
+  border-top: solid #000 2px !important;
+  border-bottom: solid #000 2px !important;
+  border-left: none;
+  border-right: none;
+  border-collapse: collapse !important;
+  background: transparent !important;
+}
+
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/styles/github.min.css">
+</head>
+<body class="article">
+<div id="header">
+<h1>Data transfer objects, records, and data classes</h1>
+<div class="details">
+<span id="author" class="author">Alexey Beshenov</span><br>
+</div>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_the_old_java_way">1. The old Java way</a></li>
+<li><a href="#_prominent_example_fhir">2. Prominent example: FHIR</a></li>
+<li><a href="#_mutable_vs_immutable_in_jdk">3. Mutable vs. immutable in JDK</a></li>
+<li><a href="#_java_records">4. Java records</a></li>
+<li><a href="#_pros_and_cons_of_records">5. Pros and cons of records</a></li>
+<li><a href="#_lombok">6. Lombok</a></li>
+<li><a href="#_data_classes_in_kotlin">7. Data classes in Kotlin</a></li>
+<li><a href="#_references">8. References</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This is my first note about <strong>pragmatic Java programming</strong>.
+We will investigate some basic things and try to understand why they are the way they are.
+Sometimes it is also instructive to look at other JVM languages and see how they
+solve typical Java problems. We will notably use <a href="https://kotlinlang.org/">Kotlin</a>.</p>
+</div>
+<div class="paragraph">
+<p>Like it or not, a large part of programming concerns
+<a href="https://en.wikipedia.org/wiki/Data_transfer_object"><strong>data transfer objects</strong></a>.
+Their only purpose is to&#8230;&#8203; transfer data. Some languages have great support for
+data transfer objects out of the box, while other languages make it unnecessarily
+awkward. This is not unique to object oriented programming; e.g.
+<a href="http://learnyouahaskell.com/making-our-own-types-and-typeclasses">Haskell has <code>data</code> type declaration</a>
+which works well for defining data structures.
+But here we will talk about Java, where historically working with data transfer
+objects was clumsy.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="data-classes-cover.jpg" alt="data classes cover">
+</div>
+</div>
+<div class="paragraph">
+<p>In Java, data transfer objects are often called <strong>POJOs</strong> (plain old Java objects),
+or <strong>JavaBeans</strong> (name coming from an
+<a href="https://www.oracle.com/java/technologies/javase/javabeans-spec.html">old API from Sun</a>
+and its conventions),
+even though these terms have slightly different meanings and origins.</p>
+</div>
+<div class="paragraph">
+<p>Since JDK 14, Java has <strong>records</strong>, a special kind of classes that serve like
+data carriers. In Kotlin, there are <strong>data classes</strong> that cover the same needs
+and actually work better than records.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_old_java_way">1. The old Java way</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To fix a concrete example, suppose we have the following data structure:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>userId</code> : <code>long</code></p>
+</li>
+<li>
+<p><code>login</code> : <code>String</code></p>
+</li>
+<li>
+<p><code>active</code> : <code>boolean</code></p>
+</li>
+<li>
+<p><code>email</code> : <code>String</code></p>
+</li>
+<li>
+<p><code>displayName</code> : <code>String</code>, possibly <code>null</code></p>
+</li>
+<li>
+<p><code>githubAccount</code> : <code>String</code>, possibly <code>null</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In good old Java, we would start with defining a class with all necessary
+private fields, and then the IDE (or <a href="https://projectlombok.org/">Lombok</a>)
+can automatically generate a constructor, setters, <code>equals</code>, <code>hashCode</code>, and <code>toString</code>.
+The result will look as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class User {
+    private final long userId;
+    private final String login;
+    private final boolean active;
+    private final String email;
+    private final String displayName;
+    private final String githubAccount;
+
+    public User(
+            long userId,
+            String login,
+            boolean active,
+            String email,
+            String displayName,
+            String githubAccount
+    ) {
+        this.userId = userId;
+        this.login = login;
+        this.active = active;
+        this.email = email;
+        this.displayName = displayName;
+        this.githubAccount = githubAccount;
+    }
+
+    public long getUserId() {
+        return userId;
+    }
+
+    public String getLogin() {
+        return login;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public String getGithubAccount() {
+        return githubAccount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        // Auto-generated code
+    }
+
+    @Override
+    public int hashCode() {
+        // Auto-generated code
+    }
+
+    @Override
+    public String toString() {
+        // Auto-generated code
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Every Java programmer knows to go quickly over such standard code.
+It is always the same, most of the time generated by the IDE.
+It will raise some eyebrows if getters and setters have extra logic implemented.</p>
+</div>
+<div class="paragraph">
+<p>We declared fields as final and only defined getters because we would like
+to keep our data immutable.</p>
+</div>
+<div class="paragraph">
+<p>There is a serious problem with this code.</p>
+</div>
+<div class="paragraph">
+<p>First, it is
+<a href="https://wiki.c2.com/?StringlyTyped">"stringly typed"</a>:
+it uses the same <code>String</code> type to express different data.
+Some people argue that you need to wrap almost everything in domain-specific types:
+e.g., you&#8217;d never pass "<a href="mailto:joe@gmail.com">joe@gmail.com</a>", but instead a value of designated type
+<code>Email("<a href="mailto:joe@gmail.com">joe@gmail.com</a>")</code>.</p>
+</div>
+<div class="paragraph">
+<p>However, as we see, creating types in Java is a bit tedious.</p>
+</div>
+<div class="paragraph">
+<p>Another related problem is that the constructor has too many arguments,
+many of them indistinguishable, having the same type. Creating a <code>User</code>
+manually is very hard as a consequence.</p>
+</div>
+<div class="paragraph">
+<p>A common solution to this problem is to define setters, so that the
+object can be configured field by field.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class User {
+    private long userId;
+    private String login;
+    private boolean active;
+    private String email;
+    private String displayName;
+    private String githubAccount;
+
+    public long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(long userId) {
+        this.userId = userId;
+    }
+
+    // Similar getters and setters for other fields
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Another common style is "builder setters",
+where <code>setFoo(&#8230;&#8203;)</code> returns <code>this</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class User {
+    // Private fields
+
+    public long getUserId() {
+        return userId;
+    }
+
+    public User setUserId(long userId) {
+        this.userId = userId;
+        return this;
+    }
+
+    public String getLogin() {
+        return login;
+    }
+
+    public User setLogin(String login) {
+        this.login = login;
+        return this;
+    }
+
+    // etc.
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This allows chained calls:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">final var user = new User().setUserId(123)
+        .setLogin("cadadr")
+        .setActive(true)
+        .setDisplayName("Alexey Beshenov")
+        .setEmail("cadadr@gmail.com")
+        .setGithubAccount("abeshenov");</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This approach to configuring fields has its own problems. We made all fields
+mutable through setters, so we can&#8217;t treat our <code>User</code> objects as immutable values.
+We also don&#8217;t know if the constructed instances are valid, e.g., whether we set
+all required fields.</p>
+</div>
+<div class="paragraph">
+<p>To make sure that we always construct valid objects, we can use the classical
+<a href="https://refactoring.guru/design-patterns/builder"><strong>builder pattern</strong></a>.
+There our builder would verify if all necessary fields are set, and we can also
+return a "frozen", immutable object (without setters).</p>
+</div>
+<div class="paragraph">
+<p>For more details, see
+Item 2 in <em>Joshua Bloch, Effective Java. Third Edition</em>.</p>
+</div>
+<div class="paragraph">
+<p>To have a kind of "setters" that don&#8217;t mutate data, we can define methods that
+return a <strong>new instance</strong> of <code>User</code>. It would be misleading to use names like
+<code>setFoo(&#8230;&#8203;)</code> in this case, we would rather use <code>withFoo(&#8230;&#8203;)</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class User {
+
+    public User withUserId(long userId);
+    public User withLogin(String login);
+    public User withActiveStatus(boolean active);
+    public User withEmail(String email);
+    public User withDisplayName(String displayName);
+    public User withGithubAccount(String githubAccount);
+
+    // Getters
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Sadly, it is a very common Java convention for a class to have a zero-argument
+constructor and getters and setters for each field. Libraries like
+<a href="https://github.com/FasterXML/jackson">Jackson</a> expect this when
+deserializing classes: they create an instance and then set different fields
+with setters. Class fields are discovered by introspection: a field <code>foo</code>
+is expected to be accessible through <code>getFoo()</code> and <code>setFoo(&#8230;&#8203;)</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_prominent_example_fhir">2. Prominent example: FHIR</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The library
+<a href="https://github.com/hapifhir/org.hl7.fhir.core"><code>ca.uhn.hapi.fhir:org.hl7.fhir.r4</code></a>
+is all about "data transfer objects". It defines many resources and data types from
+<a href="https://hl7.org/fhir/">FHIR</a>, a sophisticated standard for health care data exchange.</p>
+</div>
+<div class="paragraph">
+<p>For instance, there is a class
+<a href="https://hapifhir.io/hapi-fhir/apidocs/hapi-fhir-structures-r4/org/hl7/fhir/r4/model/Patient.html"><code>org.hl7.fhir.r4.model.Patient</code></a>
+that represents
+<a href="https://hl7.org/fhir/patient.html">various data related to a patient</a>.</p>
+</div>
+<div class="paragraph">
+<p>This class has a lot inside. It also makes part of a
+<a href="https://hapifhir.io/hapi-fhir/apidocs/hapi-fhir-structures-r4/org/hl7/fhir/r4/model/package-tree.html">nontrivial class hierarchy</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class Patient extends DomainResource {
+    protected List&lt;Identifier&gt; identifier;
+    protected BooleanType active;
+    protected List&lt;HumanName&gt; name;
+    protected List&lt;ContactPoint&gt; telecom;
+    protected Enumeration&lt;Enumerations$AdministrativeGender&gt; gender;
+    protected DateType birthDate;
+    protected Type deceased;
+    protected List&lt;Address&gt; address;
+    protected CodeableConcept maritalStatus;
+    protected Type multipleBirth;
+    protected List&lt;Attachment&gt; photo;
+    protected List&lt;Patient$ContactComponent&gt; contact;
+    protected List&lt;Patient$PatientCommunicationComponent&gt; communication;
+    protected List&lt;Reference&gt; generalPractitioner;
+    protected List&lt;Resource&gt; generalPractitionerTarget;
+    protected Reference managingOrganization;
+    protected Organization managingOrganizationTarget;
+    protected List&lt;Patient$PatientLinkComponent&gt; link;
+
+    public static final String SP_IDENTIFIER;
+    public static final ca.uhn.fhir.rest.gclient.TokenClientParam IDENTIFIER;
+    public static final String SP_GIVEN;
+    public static final ca.uhn.fhir.rest.gclient.StringClientParam GIVEN;
+    // More constants...
+
+    public Patient();
+
+    public List&lt;Identifier&gt; getIdentifier();
+    public Patient setIdentifier(List&lt;Identifier&gt;);
+    public boolean hasIdentifier();
+    public Identifier addIdentifier();
+    public Patient addIdentifier(Identifier);
+    public Identifier getIdentifierFirstRep();
+
+    public BooleanType getActiveElement();
+    public boolean hasActiveElement();
+    public boolean hasActive();
+    public Patient setActiveElement(BooleanType);
+    public boolean getActive();
+    public Patient setActive(boolean);
+
+    public List&lt;HumanName&gt; getName();
+    public Patient setName(List&lt;HumanName&gt;);
+    public boolean hasName();
+    public HumanName addName();
+    public Patient addName(HumanName);
+    public HumanName getNameFirstRep();
+
+    public List&lt;ContactPoint&gt; getTelecom();
+    public Patient setTelecom(List&lt;ContactPoint&gt;);
+    public boolean hasTelecom();
+    public ContactPoint addTelecom();
+    public Patient addTelecom(ContactPoint);
+    public ContactPoint getTelecomFirstRep();
+
+    public Enumeration&lt;Enumerations$AdministrativeGender&gt; getGenderElement();
+    public boolean hasGenderElement();
+    public boolean hasGender();
+    public Patient setGenderElement(Enumeration&lt;Enumerations$AdministrativeGender&gt;);
+    public Enumerations$AdministrativeGender getGender();
+    public Patient setGender(Enumerations$AdministrativeGender);
+
+    public DateType getBirthDateElement();
+    public boolean hasBirthDateElement();
+    public boolean hasBirthDate();
+    public Patient setBirthDateElement(DateType);
+    public Date getBirthDate();
+    public Patient setBirthDate(Date);
+
+    public Type getDeceased();
+    public BooleanType getDeceasedBooleanType() throws FHIRException;
+    public boolean hasDeceasedBooleanType();
+    public DateTimeType getDeceasedDateTimeType() throws FHIRException;
+    public boolean hasDeceasedDateTimeType();
+    public boolean hasDeceased();
+    public Patient setDeceased(Type);
+
+    public List&lt;Address&gt; getAddress();
+    public Patient setAddress(List&lt;Address&gt;);
+    public boolean hasAddress();
+    public Address addAddress();
+    public Patient addAddress(Address);
+    public Address getAddressFirstRep();
+
+    public CodeableConcept getMaritalStatus();
+    public boolean hasMaritalStatus();
+    public Patient setMaritalStatus(CodeableConcept);
+
+    public Type getMultipleBirth();
+    public BooleanType getMultipleBirthBooleanType() throws FHIRException;
+    public boolean hasMultipleBirthBooleanType();
+    public IntegerType getMultipleBirthIntegerType() throws FHIRException;
+    public boolean hasMultipleBirthIntegerType();
+    public boolean hasMultipleBirth();
+    public Patient setMultipleBirth(Type);
+
+    public List&lt;Attachment&gt; getPhoto();
+    public Patient setPhoto(List&lt;Attachment&gt;);
+    public boolean hasPhoto();
+    public Attachment addPhoto();
+    public Patient addPhoto(Attachment);
+    public Attachment getPhotoFirstRep();
+
+    public List&lt;Patient$ContactComponent&gt; getContact();
+    public Patient setContact(List&lt;Patient$ContactComponent&gt;);
+    public boolean hasContact();
+    public Patient$ContactComponent addContact();
+    public Patient addContact(Patient$ContactComponent);
+    public Patient$ContactComponent getContactFirstRep();
+
+    public List&lt;Patient$PatientCommunicationComponent&gt; getCommunication();
+    public Patient setCommunication(List&lt;Patient$PatientCommunicationComponent&gt;);
+    public boolean hasCommunication();
+    public Patient$PatientCommunicationComponent addCommunication();
+    public Patient addCommunication(Patient$PatientCommunicationComponent);
+    public Patient$PatientCommunicationComponent getCommunicationFirstRep();
+
+    public List&lt;Reference&gt; getGeneralPractitioner();
+    public Patient setGeneralPractitioner(List&lt;Reference&gt;);
+    public boolean hasGeneralPractitioner();
+    public Reference addGeneralPractitioner();
+    public Patient addGeneralPractitioner(Reference);
+    public Reference getGeneralPractitionerFirstRep();
+    public List&lt;Resource&gt; getGeneralPractitionerTarget();
+
+    public Reference getManagingOrganization();
+    public boolean hasManagingOrganization();
+    public Patient setManagingOrganization(Reference);
+    public Organization getManagingOrganizationTarget();
+    public Patient setManagingOrganizationTarget(Organization);
+
+    public List&lt;Patient$PatientLinkComponent&gt; getLink();
+    public Patient setLink(List&lt;Patient$PatientLinkComponent&gt;);
+    public boolean hasLink();
+    public Patient$PatientLinkComponent addLink();
+    public Patient addLink(Patient$PatientLinkComponent);
+    public Patient$PatientLinkComponent getLinkFirstRep();
+
+    protected void listChildren(List&lt;Property&gt;);
+    public Property getNamedProperty(int, String, boolean) throws FHIRException;
+    public Base[] getProperty(int, String, boolean) throws FHIRException;
+    public Base setProperty(int, String, Base) throws FHIRException;
+    public Base setProperty(String, Base) throws FHIRException;
+    public Base makeProperty(int, String) throws FHIRException;
+    public String[] getTypesForProperty(int, String) throws FHIRException;
+    public Base addChild(String) throws FHIRException;
+    public String fhirType();
+    public Patient copy();
+    public void copyValues(Patient);
+    protected Patient typedCopy();
+    public boolean equalsDeep(Base);
+    public boolean equalsShallow(Base);
+    public boolean isEmpty();
+    public ResourceType getResourceType();
+    public DomainResource copy();
+    public Resource copy();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As you see, this uses "builder setters" style. This allows chained calls:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">final var patient = new Patient()
+    .setName(...)
+    .setBirthDate(...)
+    .setContact(...)
+    .setPhoto(...);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In Kotlin, we can write calls to setters as field assignments:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val patient = Patient()
+
+patient.name = listOf(HumanName().setFamily("Dobbs").addGiven("Bob"))
+patient.active = true
+patient.gender = Enumerations.AdministrativeGender.MALE
+
+// We can also do
+with(patient) {
+    name = listOf(HumanName().setFamily("Dobbs").addGiven("Bob"))
+    active = true
+    gender = Enumerations.AdministrativeGender.MALE
+}
+
+// Can use chained calls, if we like:
+val contact = ContactPoint().setUse(ContactPoint.ContactPointUse.HOME)
+    .setRank(0)
+    .setValue("123-456-7890")
+
+patient.telecom = listOf(contact)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Objects in the package <code>ca.uhn.hapi.fhir:org.hl7.fhir.r4</code> are quite complex
+and require a
+<a href="https://hapifhir.io/hapi-fhir/apidocs/hapi-fhir-structures-r4/org/hl7/fhir/r4/formats/IParser.html">custom serializer/deserializer to JSON</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_mutable_vs_immutable_in_jdk">3. Mutable vs. immutable in JDK</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Mutable objects with setters are everywhere in old Java.</p>
+</div>
+<div class="paragraph">
+<p>For instance, the
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Date.html"><code>java.util.Date</code></a>
+class has (now deprecated) methods
+<code>setDate(&#8230;&#8203;)</code>, <code>setHours(&#8230;&#8203;)</code>, <code>setMinutes(&#8230;&#8203;)</code>, <code>setMonth(&#8230;&#8203;)</code>, <code>setSeconds(&#8230;&#8203;)</code>, <code>setTime(&#8230;&#8203;)</code>
+that mutate the object and return <code>void</code>.</p>
+</div>
+<div class="paragraph">
+<p>The modern API for working with date and time is in the
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/package-summary.html"><code>java.time</code></a>
+package. There a class like
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/LocalDateTime.html"><code>java.time.LocalDateTime</code></a>
+has no mutating setters. Instead, there are methods
+<code>withDayOfMonth(&#8230;&#8203;)</code>, <code>withDayOfYear(&#8230;&#8203;)</code>, <code>withHour(&#8230;&#8203;)</code>, <code>withMinute(&#8230;&#8203;)</code>, <code>withMonth(&#8230;&#8203;)</code>, <code>withNano(&#8230;&#8203;)</code>, <code>withSecond(&#8230;&#8203;)</code>, <code>withYear(&#8230;&#8203;)</code>
+that return a copy.</p>
+</div>
+<div class="paragraph">
+<p>As you see, even JDK itself moves away from the old Java conventions.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_java_records">4. Java records</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Java 14 finally introduced
+<a href="https://docs.oracle.com/en/java/javase/17/language/records.html"><strong>records</strong></a>.
+Our structure can be now written as</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public record User(
+        long userId,
+        @NotNull String login,
+        boolean active,
+        @NotNull String email,
+        @Nullable String displayName,
+        @Nullable String githubAccount
+) { }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I added <code>@NotNull</code> / <code>@Nullable</code> annotations.
+Some people would go as far as using
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Optional.html"><code>Optional</code></a>
+for optional values. This is a matter of taste; we&#8217;ll not go into such details.</p>
+</div>
+<div class="paragraph">
+<p>A record declaration is a syntactic sugar that generates</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>a constructor taking values of all fields as arguments,</p>
+</li>
+<li>
+<p>a getter of the form <code>foo()</code> for each field <code>foo</code> (yes, it is <code>foo()</code>, not <code>getFoo()</code>),</p>
+</li>
+<li>
+<p><code>equals(&#8230;&#8203;)</code>, <code>hashCode()</code>, <code>toString()</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Records are also implicitly final classes (can&#8217;t be extended by subclasses).
+They can&#8217;t extend other classes either, but they can implement interfaces.</p>
+</div>
+<div class="paragraph">
+<p>The above code is equivalent to the following.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public final class User {
+    private final long userId;
+    private final @NotNull String login;
+    private final boolean active;
+    private final @NotNull String email;
+    private final @Nullable String displayName;
+    private final @Nullable String githubAccount;
+
+    public User(
+            long userId,
+            @NotNull String login,
+            boolean active,
+            @NotNull String email,
+            @Nullable String displayName,
+            @Nullable String githubAccount
+    ) {
+        this.userId = userId;
+        this.login = login;
+        this.active = active;
+        this.email = email;
+        this.displayName = displayName;
+        this.githubAccount = githubAccount;
+    }
+
+    public long userId() {
+        return userId;
+    }
+
+    public @NotNull String login() {
+        return login;
+    }
+
+    public boolean active() {
+        return active;
+    }
+
+    public @NotNull String email() {
+        return email;
+    }
+
+    public @Nullable String displayName() {
+        return displayName;
+    }
+
+    public @Nullable String githubAccount() {
+        return githubAccount;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        var that = (User) obj;
+        return this.userId == that.userId &amp;&amp;
+                Objects.equals(this.login, that.login) &amp;&amp;
+                this.active == that.active &amp;&amp;
+                Objects.equals(this.email, that.email) &amp;&amp;
+                Objects.equals(this.displayName, that.displayName) &amp;&amp;
+                Objects.equals(this.githubAccount, that.githubAccount);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userId, login, active, email, displayName, githubAccount);
+    }
+
+    @Override
+    public String toString() {
+        return "User[" +
+                "userId=" + userId + ", " +
+                "login=" + login + ", " +
+                "active=" + active + ", " +
+                "email=" + email + ", " +
+                "displayName=" + displayName + ", " +
+                "githubAccount=" + githubAccount + ']';
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When compiled to classes, records turn in the above thing.
+E.g. if you inspect <code>User.class</code> with the <code>javap</code> tool, you&#8217;ll see</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public final class User extends Record {
+    public User(long, String, boolean, String, String, String);
+    public final String toString();
+    public final int hashCode();
+    public final boolean equals(Object);
+    public long userId();
+    public String login();
+    public boolean active();
+    public String email();
+    public String displayName();
+    public String githubAccount();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Luckily, we can know with reflection whether a class is a record and obtain
+the list of its fields. Thanks to this, libraries like Jackson have support for
+Java records and treat them the same way as old-school classes with
+zero-arg constructor and setters.</p>
+</div>
+<div class="paragraph">
+<p>There is still one important application where you can&#8217;t use records: when your class
+is a <a href="https://spring.io/guides/gs/accessing-data-jpa/">persistent <code>@Entity</code></a>.</p>
+</div>
+<div class="paragraph">
+<p>It seems like
+<a href="https://en.wikipedia.org/wiki/Jakarta_Persistence">object-relational mapping frameworks in Java</a>
+expect persistent entities to follow the "JavaBean" style with zero-arg
+constructor, setters and getters.
+See e.g.
+<a href="https://docs.jboss.org/hibernate/annotations/3.5/reference/en/html/entity.html">Hibernate&#8217;s documentation</a>.</p>
+</div>
+<div class="paragraph">
+<p>However, keep in mind that <code>@Entities</code> are not meant to be the same as
+data transfer objects.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_pros_and_cons_of_records">5. Pros and cons of records</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The advantages of records are clear: they allow us to define immutable
+data transfer objects without writing all the boilerplate code.</p>
+</div>
+<div class="paragraph">
+<p>There are two obvious disadvantages.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The constructor depends on all fields at once, so it is very difficult
+to manually create instances of complex records.</p>
+</li>
+<li>
+<p>There is no method for obtaining a copy of record.
+Ideally, we would like to have methods for copying with changing fields.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>To summarize the situation, working with pure "data transfer objects" in Java
+can be clumsy. Records reduce boilerplate code but don&#8217;t solve all problems.
+You can also apply the builder pattern to deal with too many parameters.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_lombok">6. Lombok</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A popular alternative is code generation with
+<a href="https://projectlombok.org/">Lombok</a>. It has annotations like
+<a href="https://projectlombok.org/features/Builder"><code>@Builder</code></a>,
+<a href="https://projectlombok.org/features/Data"><code>@Data</code></a>, and
+<a href="https://projectlombok.org/features/Value"><code>@Value</code></a>
+that add all the boilerplate.</p>
+</div>
+<div class="paragraph">
+<p>Modern IDEs understand Lombok, so it can be integrated with your tools.
+However, it is still an extra development dependency.</p>
+</div>
+<div class="paragraph">
+<p>Instead of extending Java with Lombok, why don&#8217;t we consider different
+JVM languages? I&#8217;m advocating for Kotlin, but in general it can be worth
+investigating Clojure, Groovy, or Scala. For certain tasks they are better than
+Java, and they run on top of the JVM.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_data_classes_in_kotlin">7. Data classes in Kotlin</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Kotlin has
+<a href="https://kotlinlang.org/docs/data-classes.html"><strong>data classes</strong></a>
+that work like Java records, and in fact give more flexibility.</p>
+</div>
+<div class="paragraph">
+<p>The syntax is very simple:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">data class User(
+    val userId: Long,
+    val login: String,
+    val email: String,
+    val active: Boolean = true,
+    val displayName: String? = null,
+    val githubAccount: String? = null
+)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then the fields are accessed as <code>user.userId</code>, <code>user.login</code>, <code>user.email</code>,
+etc. There are getters behind, but you don&#8217;t see them in code.</p>
+</div>
+<div class="paragraph">
+<p>Here we defined default values for some parameters. When we create an instance
+of <code>User</code>, we can use field names.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val user1 = User(123, "cadadr", "cadadr@github.com")
+
+val user2 = User(
+    userId = 123, githubAccount = "abeshenov", login = "cadadr", email = "cadadr@github.com"
+)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We declared all fields with <code>val</code> because we normally want immutable values.</p>
+</div>
+<div class="paragraph">
+<p>It is also possible to have <code>var</code> fields in a data class. Then we can call
+setters with <code>obj.foo = newValue</code>. However, we should always be careful with
+mutable objects.</p>
+</div>
+<div class="paragraph">
+<p>If we want to modify fields of a data class, we should use <code>copy()</code>.
+E.g. the following code doesn&#8217;t change <code>user1</code>; instead it creates a copy
+with <code>displayName</code> and <code>githubAccount</code> modified:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val user1 = User(123, "cadadr", "cadadr@github.com")
+val user2 = user1.copy(displayName = "Alexey Beshenov", githubAccount = "abeshenov")</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To understand how this works under the hood, we can inspect the <code>User.class</code> file:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public final class User {
+    public User(long, String, String, boolean, String, String);
+    public final long getUserId();
+    public final String getLogin();
+    public final String getEmail();
+    public final boolean isActive();
+    public final String getDisplayName();
+    public final String getGithubAccount();
+    public final long component1();
+    public final String component2();
+    public final String component3();
+    public final boolean component4();
+    public final String component5();
+    public final String component6();
+    public final User copy(long, String, String, boolean, String, String);
+    public String toString();
+    public int hashCode();
+    public boolean equals(Object);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So it generated</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>constructors,</p>
+</li>
+<li>
+<p>getters for all fields,</p>
+</li>
+<li>
+<p><code>componentN()</code> functions for accessing fields by their position,</p>
+</li>
+<li>
+<p><code>copy(&#8230;&#8203;)</code> method.</p>
+</li>
+<li>
+<p><code>equals(&#8230;&#8203;)</code>, <code>hashCode()</code>, <code>toString()</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I omitted a couple of "synthetic" methods that allow to call <code>User(&#8230;&#8203;)</code>
+and <code>copy(&#8230;&#8203;)</code> with default values from Kotlin.</p>
+</div>
+<div class="paragraph">
+<p>This is a good example of how design patterns (builder) become obsolete
+when the problem is already solved by the language
+(named arguments and default values for them).</p>
+</div>
+<div class="paragraph">
+<p>The <code>componentN()</code> functions are used internally for
+<a href="https://kotlinlang.org/docs/destructuring-declarations.html">destructuring</a>.
+The destructuring is by position. The code like</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val (id, login, email) = user</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>will compile to</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val id    = user.component1()
+val login = user.component2()
+val email = user.component3()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This feature works well with types like
+<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/-entry/"><code>Entry&lt;K,V&gt;</code></a>
+for map entries, so you can do things like</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val myMap = mapOf("foo" to 1, "bar" to 2, "baz" to 3)
+
+myMap.forEach { (k,v) -&gt; println("$k : $v") }
+
+for ((k,v) in myMap) {
+    println("$k : $v")
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Similarly, destructuring is handy for simple types like
+<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-pair/"><code>Pair&lt;A,B&gt;</code></a>.</p>
+</div>
+<div class="paragraph">
+<p>I see how this can work for established coordinate systems, like 3D coordinates
+(x,y,z), or color coordinates like RGB / HSL / etc. But for most data classes
+this kind of destructuring based on argument position can lead to confusing
+code, unless there is some natural order of fields.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_references">8. References</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Joshua Bloch, Effective Java, 3rd ed.,
+Item 2: Consider a builder when faced with many constructor parameters.</p>
+</li>
+<li>
+<p>Alexey Soshin, Kotlin Design Patterns and Best Practices, 2nd ed.,
+Chapter 2: Working with Creational Patterns.</p>
+</li>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/17/language/records.html">Java Language Updates: Record Classes</a>.</p>
+</li>
+<li>
+<p><a href="https://kotlinlang.org/docs/data-classes.html">Data classes in Kotlin</a>.</p>
+</li>
+<li>
+<p><a href="https://kotlinlang.org/docs/functions.html">Named and default arguments for functions in Kotlin</a>.</p>
+</li>
+<li>
+<p><a href="https://kotlinlang.org/docs/destructuring-declarations.html#destructuring-in-lambdas">Destructuring declarations in Kotlin</a></p>
+</li>
+<li>
+<p><a href="https://refactoring.guru/design-patterns/builder">Builder pattern</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2022-12-04T00:00-06:00
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/languages/java.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/languages/kotlin.min.js"></script>
+<script>
+if (!hljs.initHighlighting.called) {
+  hljs.initHighlighting.called = true
+  ;[].slice.call(document.querySelectorAll('pre.highlight > code')).forEach(function (el) { hljs.highlightBlock(el) })
+}
+</script>
+</body>
+</html>
