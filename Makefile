@@ -1,15 +1,15 @@
-all: docs/data-classes.html docs/java-util-date.html docs/index.html
+all: docs/2022-12-04-data-classes.html docs/2023-01-07-java-util-date.html docs/index.html
 
 docs/index.html: index.adoc blog.css
 	asciidoctor -n -a stylesheet=blog.css index.adoc --out-file=docs/index.html
 
-docs/data-classes.html: data-classes.adoc blog.css
-	asciidoctor -n -a stylesheet=blog.css data-classes.adoc --out-file=docs/data-classes.html
-	cp data-classes-cover.jpg docs
+docs/2022-12-04-data-classes.html: 2022-12-04-data-classes.adoc blog.css
+	asciidoctor -n -a stylesheet=blog.css 2022-12-04-data-classes.adoc --out-file=docs/2022-12-04-data-classes.html
+	cp 2022-12-04-data-classes-cover.jpg docs
 
-docs/java-util-date.html: java-util-date.adoc blog.css
-	asciidoctor -n -a stylesheet=blog.css java-util-date.adoc --out-file=docs/java-util-date.html
-	cp java-util-date-cover.jpg docs
+docs/2023-01-07-java-util-date.html: 2023-01-07-java-util-date.adoc blog.css
+	asciidoctor -n -a stylesheet=blog.css 2023-01-07-java-util-date.adoc --out-file=docs/2023-01-07-java-util-date.html
+	cp 2023-01-07-java-util-date-cover.jpg docs
 
 clean:
 	rm -f docs/*.html docs/*.jpg
