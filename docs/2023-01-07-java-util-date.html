@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.12">
 <meta name="author" content="Alexey Beshenov">
-<title>java.util.ServiceLoader</title>
+<title>Working with date and time in Java: Legacy java.util.Date</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500;1,700;1,800&display=swap');
 
@@ -27,10 +27,14 @@
   --codebackground: rgba(0,0,0,5%);
 }
 
+html {
+  background-image: url("pinapple.png");
+  background-size: 175px;
+}
+
 body {
-/*  background: #efe9dd; */
     border-top: solid hsl(50, 100%, 58%) 3rem;
-    background: hsl(50, 100%, 80%);
+    background: rgba(255, 238, 153, 90%);
 }
 
 a:link {
@@ -135,19 +139,20 @@ table.tableblock, th.tableblock, td.tableblock {
 </head>
 <body class="article">
 <div id="header">
-<h1>java.util.ServiceLoader</h1>
+<h1>Working with date and time in Java: Legacy java.util.Date</h1>
 <div class="details">
 <span id="author" class="author">Alexey Beshenov</span><br>
 </div>
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_creating_a_service">1. Creating a service</a></li>
-<li><a href="#_creating_a_service_provider">2. Creating a service provider</a></li>
-<li><a href="#_loading_a_service_in_runtime">3. Loading a service in runtime</a></li>
-<li><a href="#_loading_classes_from_service_implementations">4. Loading classes from service implementations</a></li>
-<li><a href="#_security_concerns">5. Security concerns</a></li>
-<li><a href="#_conclusion">6. Conclusion</a></li>
+<li><a href="#_introducing_java_util_date">1. Introducing java.util.Date</a></li>
+<li><a href="#_how_to_deal_with_java_util_date">2. How to deal with java.util.Date</a></li>
+<li><a href="#_other_languages">3. Other languages</a></li>
+<li><a href="#_mutability_issue">4. Mutability issue</a></li>
+<li><a href="#_how_should_immutable_values_work">5. How should immutable values work</a></li>
+<li><a href="#_summary">6. Summary</a></li>
+<li><a href="#_coming_soon">7. Coming soon&#8230;&#8203;</a></li>
 </ul>
 </div>
 </div>
@@ -155,236 +160,603 @@ table.tableblock, th.tableblock, td.tableblock {
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p>In this installment of my JVM notes I would like to explore
-<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html"><code>java.util.ServiceLoader</code></a>.
-It will allow us to embrace the dynamic aspect of the Java Virtual Machine.
-We will write code in Kotlin, but the described mechanism works the same
-for any language targeting the JVM.</p>
+<p>I wanted to review how to work with date and time in Java.
+There are two things to know: legacy
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Date.html"><code>java.util.Date</code></a> /
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Calendar.html"><code>java.util.Calendar</code></a>
+and modern API in the <code>java.time</code> package (introduced in Java 8).
+Here we will talk about the legacy part.</p>
 </div>
 <div class="paragraph">
 <p><strong>This note is a part of <a href="index.html">my blog</a></strong>.</p>
 </div>
 <div class="paragraph">
-<p><strong>Source code on GitHub: <a href="https://github.com/abeshenov/serviceloader-example" class="bare">https://github.com/abeshenov/serviceloader-example</a></strong></p>
+<p>Normally our code should not contain <code>java.util.Date</code> and <code>java.util.Calendar</code>.
+However, some legacy APIs still use <code>java.util.Date</code> to represent date and time,
+and even some widely used libraries are reluctant to move to <code>java.time</code>.</p>
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="2023-01-08-serviceloader-cover.jpg" alt="2023 01 08 serviceloader cover">
+<img src="2023-01-07-java-util-date-cover.jpg" alt="2023 01 07 java util date cover">
 </div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_creating_a_service">1. Creating a service</h2>
+<h2 id="_introducing_java_util_date">1. Introducing java.util.Date</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>In this setting, <strong>service</strong> is any interface. We will define it in a separate
-<code>api</code> package. Normally we would prefer our interfaces to have pure functions.
-For simplicity, we will consider a dummy service with a funcion with side
-effect:</p>
+<p><code>java.util.Date</code> is a very old class. Some of its methods were deprecated
+already in JDK 1.1 (released in 1997).</p>
+</div>
+<div class="paragraph">
+<p>You can see the source code in Open JDK:
+<a href="https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/Date.java" class="bare">https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/Date.java</a></p>
+</div>
+<div class="paragraph">
+<p>To play with this class, let&#8217;s run some code snippets directly in <code>jshell</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">package org.cadadr.serviceloader.api
-
-interface Service {
-    fun applyAction()
-}</code></pre>
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; new Date()
+$ ==&gt; Sat Jan 07 16:20:00 CST 2023</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>The default constructor for <code>Date</code> returns the current <strong>date and time</strong>.
+I&#8217;m writing this on January 7 at 4:20 PM.</p>
+</div>
+<div class="paragraph">
+<p>The name of <code>java.util.Date</code> is confusing. What it really represents is
+<strong>date-time</strong>. A better name would be <code>DateTime</code>.
+The confusion is even worse because there is a method <code>getDate()</code> which
+returns&#8230;&#8203; the day of month!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; var date = new Date()
+date ==&gt; Sat Jan 07 16:20:00 CST 2023
+jshell&gt; date.getDate()
+$ ==&gt; 7</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here are more confusing methods:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; date.getDate()  // a better name would be dayOfMonth
+$ ==&gt; 7
+
+jshell&gt; date.getDay()   // a better name would be dayOfWeek
+$ ==&gt; 6
+
+jshell&gt; date.getMonth()
+$ ==&gt; 0
+
+jshell&gt; date.getYear()
+$ ==&gt; 123
+
+&gt; date.getTime()
+$ ==&gt; 1673130000469</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>getDay()</code> returns an integer, where 0 means Sunday and 6 means Saturday.
+This can be extra confusing for cultures where the week starts on Monday.
+A better designed API should return an enum constant like <code>SATURDAY</code>
+and rename the field to <code>dayOfWeek</code>.</p>
+</li>
+<li>
+<p><code>getMonth()</code> returns month as an integer, <strong>counting from 0</strong>.
+This is obviously a source of many mistakes. Returning an enum constant
+like <code>JANUARY</code> would be much better.</p>
+</li>
+<li>
+<p><code>getYear()</code> returns the year <strong>counting from 1900</strong>.</p>
+</li>
+<li>
+<p><code>getTime()</code> is the <a href="https://en.wikipedia.org/wiki/Unix_time"><strong>UNIX time</strong></a>
+in milliseconds, i.e. the number of milliseconds that have elapsed since
+00:00:00 UTC on 1 January 1970. This is what <code>Date</code> actually stores inside.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The default constructor of <code>Date</code> uses <code>System.currentTimeMillis()</code>.</p>
+</div>
+<div class="paragraph">
+<p>In particular, <code>getDate()</code> will be negative for dates before 1970.</p>
+</div>
+<div class="paragraph">
+<p>"getTime" is yet another unfortunate naming: "time" is a very general concept,
+why should it be the UNIX time in milliseconds? This is more like an internal
+representation.</p>
+</div>
+<div class="paragraph">
+<p>Since <code>Date</code> only stores the UNIX time inside, it will overflow at some point.
+You may have heard about the
+<a href="https://en.wikipedia.org/wiki/Year_2038_problem">year 2038 problem</a>.
+It will happen when UNIX time in seconds will overflow the <code>int</code> type,
+more precisely 32-bit signed integer. Thankfully <code>Date</code> uses <code>long</code>,
+which is a 64-bit signed integer, and <code>2^63 - 1</code> is <strong>much bigger</strong> than <code>2^31 - 1</code>
+(and we can safely afford storing milliseconds as well).</p>
+</div>
+<div class="paragraph">
+<p>What is also confusing about <code>Date</code> is the output representation
+"Sat Jan 07 16:50:05 CST 2023". Here "CST" refers to
+<a href="https://en.wikipedia.org/wiki/Central_Time_Zone">Central Time Zone</a>,
+where I am at the moment. There is even a method <code>getTimezoneOffset()</code>.
+Javadoc says it returns
+"the offset, measured in minutes, for the local time zone relative to UTC".</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; date.getTimezoneOffset()
+$ ==&gt; 360</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s because I&#8217;m 6 hours behind UTC now. But now if we run this in a different
+environment, we can get something different:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; var date = new Date()
+date ==&gt; Sat Jan 07 22:20:00 UTC 2023
+
+jshell&gt; date.getTimezoneOffset()
+$ ==&gt; 0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In fact, <code>Date</code> is not aware of time zone or offset! It always represents
+the UTC time. The return of <code>toString()</code> and <code>getTimezoneOffset()</code> is misleading.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_creating_a_service_provider">2. Creating a service provider</h2>
+<h2 id="_how_to_deal_with_java_util_date">2. How to deal with java.util.Date</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Now a <strong>service provider</strong> should be an implementation of our service interface.
-Let&#8217;s create it:</p>
+<p>java.util.Date should not be used in new Java projects. If we receive it
+from older APIs, we should convert it to
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Instant.html"><code>java.time.Instant</code></a>.
+For this, Java 8 introduced <code>toInstant()</code> method:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">package org.cadadr.serviceloader.helloworld
-
-import org.cadadr.serviceloader.api.Service
-
-class HelloWorldService : Service {
-    override fun applyAction() {
-        println("Hello, World!")
-    }
-}</code></pre>
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; date.toInstant()
+$ ==&gt; 2023-01-07T22:20:00Z</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now one important detail: we need to create a resource file
-<code>META-INF/services/org.cadadr.serviceloader.api.Service</code>
-with the following contents:</p>
+<p><code>Instant</code> stores <strong>time instant</strong>, i.e. a single point on the time-line.
+It is more precise than <code>Date</code> because <code>Date</code> uses milliseconds and <code>Instant</code>
+uses nanoseconds.</p>
+</div>
+<div class="paragraph">
+<p>Note that <code>toString()</code> for <code>Instant</code> follows the
+<a href="https://en.wikipedia.org/wiki/ISO_8601">ISO-8601 format</a>.
+It doesn&#8217;t include time offset, because it always UTC.</p>
+</div>
+<div class="paragraph">
+<p>Thanks to <code>toInstant()</code>, we pass from <code>java.util.Date</code> to the modern
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/package-summary.html"><code>java.time</code></a> API.
+I will talk about it in the next note. Here is a small correspondence between
+the old and new API.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Old API</th>
+<th class="tableblock halign-left valign-top">New API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>java.util.Date</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Instant.html"><code>java.time.Instant</code></a>, <code>date.toInstant()</code>, <code>Date.from(Instant instant)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>java.util.Calendar</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>calendar.toInstant()</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>java.util.GregorianCalendar</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gregorianCalendar.toZonedDateTime()</code>, <code>GregorianCalendar.from(ZonedDateTime zdt)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>java.util.TimeZone</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/ZoneId.html"><code>java.time.ZoneId</code></a>, <code>TimeZone getTimeZone(ZoneId zoneId)</code>, <code>timeZone.toZoneId()</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>new Date()</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Instant.now()</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>new Date(123, 0, 7)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LocalDate.of(2023, Month.JANUARY, 7)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>date.getMonth()</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>getMonth()</code> (returns <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Month.html"><code>java.time.Month</code></a>)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>new Date(123, 0, 7, 16, 20, 30)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LocalDateTime.of(2023, Month.JANUARY, 7, 16, 20, 30)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>date.getDay()</code> (<code>int</code> with 0 = Sunday)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>getDayOfWeek()</code> (returns <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/DayOfWeek.html"><code>java.time.DayOfWeek</code></a>)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>date.getYear()</code> (<code>int</code> with 0 = 1900)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>getYear()</code> (returns normal year, e.g. <code>2023</code>)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Here are some relevant methods for interfacing between the <code>java.util</code> classes
+and <code>java.time</code> API:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">org.cadadr.serviceloader.helloworld.HelloWorldService</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We can now package our service provider in a JAR:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">./gradlew hello-world-service:jar</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>By default, this will create a file
-<code>hello-world-service/build/libs/hello-world-service.jar</code>.
-The output destination can be configured, but let&#8217;s leave it like that.
-Move the JAR manually to the application directory:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cp hello-world-service/build/libs/hello-world-service.jar app</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s inspect this JAR:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">$ jar --file app/hello-world-service.jar --describe-module
-No module descriptor found. Derived automatic module.
-
-hello.world.service automatic
-requires java.base mandated
-provides org.cadadr.serviceloader.api.Service with org.cadadr.serviceloader.helloworld.HelloWorldService
-contains org.cadadr.serviceloader.helloworld</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Indeed, we didn&#8217;t provide module information via a <code>module-info.java</code>,
-so we have an <strong>automatic module</strong>. Thanks to our resource file,
-it also knows that we provide the service
-<code>org.cadadr.serviceloader.api.Service</code> via
-<code>org.cadadr.serviceloader.helloworld.HelloWorldService</code>.</p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_loading_a_service_in_runtime">3. Loading a service in runtime</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Here is an example code for loading a service from JAR in runtime:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">import java.io.File
-import java.net.URLClassLoader
-import java.util.ServiceLoader
-
-import org.cadadr.serviceloader.api.Service
-import kotlin.system.exitProcess
-
-class App : Runnable {
-    override fun run() {
-        val jarFile = File("hello-world-service.jar")
-
-        if (!jarFile.exists()) {
-            System.err.println("File ${jarFile.absolutePath} doesn't exist")
-            exitProcess(1)
-        }
-
-        val classLoader: ClassLoader = URLClassLoader(arrayOf(jarFile.toURI().toURL()), javaClass.classLoader)
-        val serviceLoader: ServiceLoader&lt;Service&gt; = ServiceLoader.load(Service::class.java, classLoader)
-        val service = serviceLoader.first()
-
-        service.applyAction()
-    }
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class java.util.Date {
+  public static java.util.Date from(java.time.Instant);
+  public java.time.Instant toInstant();
 }
 
-fun main() {
-    App().run()
+public abstract class java.util.Calendar {
+  public final java.time.Instant toInstant();
+}
+
+public class java.util.GregorianCalendar extends java.util.Calendar {
+  public static java.util.GregorianCalendar from(java.time.ZonedDateTime);
+  public java.time.ZonedDateTime toZonedDateTime();
+}
+
+public abstract class java.util.TimeZone {
+  public static java.util.TimeZone getTimeZone(java.time.ZoneId);
+  public java.time.ZoneId toZoneId();
 }</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We run this code with</p>
+<p>If we want to add offset or time zone, we can call <code>atOffset()</code> and <code>atZone()</code>
+on <code>Instant</code> or <code>LocalDateTime</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">./gradlew app:run</code></pre>
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; date.toInstant().atOffset(ZoneOffset.ofHours(-6))
+$ ==&gt; 2023-01-07T16:20:00-06:00
+
+jshell&gt; date.toInstant().atZone(ZoneId.of("America/Mexico_City"))
+$ ==&gt; 2023-01-07T16:20:00-06:00[America/Mexico_City]
+
+jshell&gt; LocalDate.of(2023, Month.JANUARY, 7)
+            .atStartOfDay()
+            .atOffset(ZoneOffset.ofHours(-6))
+$ ==&gt; 2023-01-07T00:00-06:00
+
+jshell&gt; LocalDate.of(2023, Month.JANUARY, 7)
+            .atStartOfDay()
+            .atZone(ZoneId.of("America/Mexico_City"))
+$ ==&gt; 2023-01-07T00:00-06:00[America/Mexico_City]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>As a result, it will print</p>
+<p>The old API also contains an abstract class
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Calendar.html"><code>java.util.Calendar</code></a>
+and its concrete subclass
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/GregorianCalendar.html"><code>java.util.GregorianCalendar</code></a>.
+It was introduced in JDK 1.1 to make calculations with date and time.
+It is obsolete in Java 8+.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Hello, World!</code></pre>
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; Calendar.getInstance()
+$ ==&gt; java.util.GregorianCalendar[
+        time=1673138248965,
+        areFieldsSet=true,
+        areAllFieldsSet=true,
+        lenient=true,
+        zone=sun.util.calendar.ZoneInfo[
+            id="America/Mexico_City",
+            offset=-21600000,
+            dstSavings=3600000,
+            useDaylight=true,
+            transitions=99,
+            lastRule=java.util.SimpleTimeZone[
+                id=America/Mexico_City,
+                offset=-21600000,
+                dstSavings=3600000,
+                useDaylight=true,
+                startYear=0,
+                startMode=3,
+                startMonth=3,
+                startDay=1,
+                startDayOfWeek=1,
+                startTime=7200000,
+                startTimeMode=0,
+                endMode=2,
+                endMonth=9,
+                endDay=-1,
+                endDayOfWeek=1,
+                endTime=7200000,
+                endTimeMode=0
+            ]
+        ],
+        firstDayOfWeek=1,
+        minimalDaysInFirstWeek=1,
+        ERA=1,
+        YEAR=2023,
+        MONTH=0,
+        WEEK_OF_YEAR=1,
+        WEEK_OF_MONTH=1,
+        DAY_OF_MONTH=7,
+        DAY_OF_YEAR=7,
+        DAY_OF_WEEK=7,
+        DAY_OF_WEEK_IN_MONTH=1,
+        AM_PM=1,
+        HOUR=6,
+        HOUR_OF_DAY=18,
+        MINUTE=37,
+        SECOND=28,
+        MILLISECOND=965,
+        ZONE_OFFSET=-21600000,
+        DST_OFFSET=0
+    ]</code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_loading_classes_from_service_implementations">4. Loading classes from service implementations</h2>
+<h2 id="_other_languages">3. Other languages</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Our example is very simple, but in a realistic scenario, a particular service
-provider may have its own dependencies. In this case the <code>ClassLoader</code> that
-we pass to our <code>ServiceLoader</code> should be aware of the required classes.</p>
+<p>Conventions like</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>0-based month numbering (January = 0, December = 11),</p>
+</li>
+<li>
+<p>Sunday being 0 and Saturday being 6,</p>
+</li>
+<li>
+<p>1900-based year numbering,</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>One way to achieve that is to add necessary runtime dependencies to <code>app</code>.</p>
+<p>were not invented by Java. They were already common in C/C++.</p>
 </div>
 <div class="paragraph">
-<p>Also note how we construct the ClassLoader:</p>
+<p>JavaScript also has a class
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date"><code>Date</code></a>
+which works similarly to <code>java.util.Date</code> and suffers from the same problems.
+It is supposed to be replaced with the
+<a href="https://tc39.es/proposal-temporal/docs/">Temporal API</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_mutability_issue">4. Mutability issue</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>java.util.Date</code> represents a single value: a point on the time-line. Normally
+it should be immutable, but it is not. It has setters that modify the underlying data.</p>
+</div>
+<div class="paragraph">
+<p>We note that <code>java.util.Date</code> implements <code>equals()</code> and <code>hashCode()</code> in
+a reasonable way. But we should be careful, because a <code>Date</code> object can mutate
+over the time.</p>
+</div>
+<div class="paragraph">
+<p>Here is what can go wrong.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val classLoader: ClassLoader = URLClassLoader(arrayOf(jarFile.toURI().toURL()), javaClass.classLoader)</code></pre>
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; record Period(Date start, Date end) { }
+|  created record Period
+
+jshell&gt; import java.time.*
+
+jshell&gt; var period = new Period(
+                         Date.from(Instant.parse("2023-01-07T16:20:00Z")),
+                         Date.from(Instant.parse("2023-01-07T17:20:00Z"))
+                     )
+period ==&gt; Period[start=Sat Jan 07 10:20:00 CST 2023, end=Sat Jan 07 11:20:00 CST 2023]
+
+jshell&gt; period.start().setDate(10)
+
+jshell&gt; period
+period ==&gt; Period[start=Tue Jan 10 10:20:00 CST 2023, end=Sat Jan 07 11:20:00 CST 2023]
+
+jshell&gt; var date1 = Date.from(Instant.parse("2023-01-07T16:20:00Z"))
+date1 ==&gt; Sat Jan 07 10:20:00 CST 2023
+
+jshell&gt; var date2 = Date.from(Instant.parse("2023-01-07T17:20:00Z"))
+date2 ==&gt; Sat Jan 07 11:20:00 CST 2023
+
+jshell&gt; var period = new Period(date1, date2)
+period ==&gt; Period[start=Sat Jan 07 10:20:00 CST 2023, end=Sat Jan 07 11:20:00 CST 2023]
+
+jshell&gt; date1.setDate(10)
+
+jshell&gt; period
+period ==&gt; Period[start=Tue Jan 10 10:20:00 CST 2023, end=Sat Jan 07 11:20:00 CST 2023]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Here the parent ClassLoader is <code>javaClass.classLoader</code>, which is not necessarily
-the default ClassLoader.</p>
+<p>The correct way to deal with the mutability of <code>Date</code> is to make
+"defensive copies":</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If we receive a <code>Date</code> and want to store it (e.g. in the constructor),
+then we copy it with something like <code>this.date = new Date(date.getTime())</code>.</p>
+</li>
+<li>
+<p>Similarly, if our class stores a <code>Date</code>, we should not return it directly
+in the accessor methods. Instead, we return a copy like <code>new Date(date.getTime())</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This is discussed in Bloch&#8217;s, "Effective Java",
+Item 50: Make defensive copies when needed.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_security_concerns">5. Security concerns</h2>
+<h2 id="_how_should_immutable_values_work">5. How should immutable values work</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The security issues with this mechanism are rather obvious.
-When loading a service, we basically execute arbitrary code, so all
-<strong>the above can only be used with 100% trusted code</strong>.</p>
+<p>In the new <code>java.time</code> API, everything is immutable.
+E.g. <code>java.util.Date</code> allows us to call <code>date.setDate(10)</code>, which is an old-school
+setter mutating the object. In the new API, we should do the following:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; LocalDateTime.ofInstant(
+                new Date().toInstant(),
+                ZoneId.of("America/Mexico_City")
+            )
+            .withDayOfMonth(10)
+$ ==&gt; 2023-01-10T16:20:00</code></pre>
+</div>
 </div>
 <div class="paragraph">
-<p>Earlier in Java there was an attempts to control security for loaded classes
-via <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/SecurityManager.html"><code>java.lang.SecurityManager</code></a>.
-However, it was <a href="https://openjdk.org/jeps/411">deprecated for removal</a>.
-There is no reliable mechanism in Java to securely load classes in runtime.</p>
+<p>Here <code>java.time.LocalDateTime</code> defines methods like
+<code>withDayOfMonth()</code>, <code>withDayOfYear()</code>, <code>withHour()</code>, <code>withMinute()</code>.
+They don&#8217;t modify the underlying date-time, instead they return a copy.</p>
+</div>
+<div class="paragraph">
+<p>Similarly, there are methods</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>plusYears()</code> / <code>minusYears()</code>,</p>
+</li>
+<li>
+<p><code>plusMonths()</code> / <code>minusMonths()</code>,</p>
+</li>
+<li>
+<p><code>plusWeeks()</code> / <code>minusWeeks()</code>,</p>
+</li>
+<li>
+<p><code>plusDays()</code> / <code>minusDays()</code>,</p>
+</li>
+<li>
+<p><code>plusHours()</code> / <code>minusHours()</code>,</p>
+</li>
+<li>
+<p><code>plusMinutes()</code> / <code>minusMinutes()</code>,</p>
+</li>
+<li>
+<p><code>plusSeconds()</code> / <code>minusSeconds()</code>,</p>
+</li>
+<li>
+<p><code>plusNanos()</code> / <code>minusNanos()</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>They do not modify the underlying object, instead they return a new instance.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; LocalDateTime.now().plusDays(23)
+$ ==&gt; 2023-01-30T16:20:00</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Classes in <code>java.time</code> defines getter, e.g. <code>LocalDateTime</code> has
+<code>getYear()</code>,
+<code>getMonth()</code>,
+<code>getDayOfMonth()</code>,
+<code>getDayOfWeek()</code>,
+<code>getDayOfYear()</code>,
+<code>getHour()</code>,
+<code>getMinute()</code>,
+<code>getSecond()</code>,
+<code>getNano()</code>.</p>
+</div>
+<div class="paragraph">
+<p>There are no setters.</p>
+</div>
+<div class="paragraph">
+<p>Another issue is that <code>java.util.Date</code> is not final. (It has a subclass
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/Date.html"><code>java.sql.Date</code></a>.)
+Classes in the <code>java.time</code> API are final, as they should be.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_conclusion">6. Conclusion</h2>
+<h2 id="_summary">6. Summary</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>We saw here how <strong>service loaders</strong> work in Java.
-This mechanism allows to define a <strong>service interface</strong> and then load
-its implementations via a class loader.</p>
+<p>The legacy API for working with date and time is
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Date.html"><code>java.util.Date</code></a>.
+This class represents roughly the same as
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Instant.html"><code>java.time.Instant</code></a>.
+We should prefer the
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/package-summary.html"><code>java.time</code></a>
+API introduced in Java 8.</p>
 </div>
 <div class="paragraph">
-<p>This is a powerful mechanism which allows us to extend program logic
-dynamically.</p>
+<p>Passing from <code>java.util.Date</code> to the <code>java.time</code> API is a good example of
+refactoring old-school Java code with mutable objects to immutable values.</p>
+</div>
+<div class="paragraph">
+<p><code>java.time</code> has also more consistent naming, e.g. instead of
+<code>date.getDay() = 6</code> and <code>date.getDate() = 7</code> it is better to have
+<code>localDateTime.getDayOfWeek() = SATURDAY</code> and <code>localDateTime.getDayOfMonth() = 7</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_coming_soon">7. Coming soon&#8230;&#8203;</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In the next note we will see more about
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/package-summary.html"><code>java.time</code></a>,
+including
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Instant.html"><code>Instant</code></a>
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/LocalDate.html"><code>LocalDate</code></a>
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/LocalTime.html"><code>LocalTime</code></a>
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/LocalDateTime.html"><code>LocalDateTime</code></a>
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/OffsetDateTime.html"><code>OffsetDateTime</code></a>
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/ZonedDateTime.html"><code>ZonedDateTime</code></a>.
+Formatting and parsing is of course a common concern, so we will discuss that.
+Another interesting topic is
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Clock.html"><code>java.time.Clock</code></a>. It allows to control the time
+and test some code.</p>
+</div>
+<div class="paragraph">
+<p>"Time is what we measure with a clock" (a quote attributed to Einstein).</p>
 </div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-01-08T00:00-06:00
+Last updated 2023-01-07T00:00-06:00
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/languages/kotlin.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/languages/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/languages/java.min.js"></script>
 <script>
 if (!hljs.initHighlighting.called) {
   hljs.initHighlighting.called = true

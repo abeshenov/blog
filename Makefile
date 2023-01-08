@@ -2,6 +2,7 @@ all: docs/2022-12-04-data-classes.html docs/2023-01-07-java-util-date.html docs/
 
 docs/index.html: index.adoc blog.css
 	asciidoctor -n -a stylesheet=blog.css index.adoc --out-file=docs/index.html
+	cp pinapple.png docs
 
 docs/2022-12-04-data-classes.html: 2022-12-04-data-classes.adoc blog.css
 	asciidoctor -n -a stylesheet=blog.css 2022-12-04-data-classes.adoc --out-file=docs/2022-12-04-data-classes.html
