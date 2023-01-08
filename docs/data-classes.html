@@ -5,6 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.12">
+<meta name="author" content="Alexey Beshenov">
 <title>Data transfer objects, records, and data classes</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500;1,700;1,800&display=swap');
@@ -27,7 +28,9 @@
 }
 
 body {
-  background: #efe9dd;
+/*  background: #efe9dd; */
+    border-top: solid hsl(50, 100%, 58%) 3rem;
+    background: hsl(50, 100%, 80%);
 }
 
 a:link {
@@ -110,12 +113,31 @@ video {
   border-top: solid #000 5px !important;
   border-bottom: solid #000 5px !important;
 }
+
+.sect1 {
+  border-top: solid #000 5px !important;  
+}
+
+table,
+table thead, table tfoot,
+table.tableblock, th.tableblock, td.tableblock {
+  border-top: solid #000 2px !important;
+  border-bottom: solid #000 2px !important;
+  border-left: none;
+  border-right: none;
+  border-collapse: collapse !important;
+  background: transparent !important;
+}
+
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/styles/github.min.css">
 </head>
 <body class="article">
 <div id="header">
 <h1>Data transfer objects, records, and data classes</h1>
+<div class="details">
+<span id="author" class="author">Alexey Beshenov</span><br>
+</div>
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
@@ -152,7 +174,7 @@ objects was clumsy.</p>
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="cover.jpg" alt="cover">
+<img src="data-classes-cover.jpg" alt="data classes cover">
 </div>
 </div>
 <div class="paragraph">
@@ -1009,6 +1031,52 @@ and <code>copy(&#8230;&#8203;)</code> with default values from Kotlin.</p>
 when the problem is already solved by the language
 (named arguments and default values for them).</p>
 </div>
+<div class="paragraph">
+<p>The <code>componentN()</code> functions are used internally for
+<a href="https://kotlinlang.org/docs/destructuring-declarations.html">destructuring</a>.
+The destructuring is by position. The code like</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val (id, login, email) = user</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>will compile to</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val id    = user.component1()
+val login = user.component2()
+val email = user.component3()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This feature works well with types like
+<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/-entry/"><code>Entry&lt;K,V&gt;</code></a>
+for map entries, so you can do things like</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val myMap = mapOf("foo" to 1, "bar" to 2, "baz" to 3)
+
+myMap.forEach { (k,v) -&gt; println("$k : $v") }
+
+for ((k,v) in myMap) {
+    println("$k : $v")
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Similarly, destructuring is handy for simple types like
+<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-pair/"><code>Pair&lt;A,B&gt;</code></a>.</p>
+</div>
+<div class="paragraph">
+<p>I see how this can work for established coordinate systems, like 3D coordinates
+(x,y,z), or color coordinates like RGB / HSL / etc. But for most data classes
+this kind of destructuring based on argument position can lead to confusing
+code, unless there is some natural order of fields.</p>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -1034,6 +1102,9 @@ Chapter 2: Working with Creational Patterns.</p>
 <p><a href="https://kotlinlang.org/docs/functions.html">Named and default arguments for functions in Kotlin</a>.</p>
 </li>
 <li>
+<p><a href="https://kotlinlang.org/docs/destructuring-declarations.html#destructuring-in-lambdas">Destructuring declarations in Kotlin</a></p>
+</li>
+<li>
 <p><a href="https://refactoring.guru/design-patterns/builder">Builder pattern</a>.</p>
 </li>
 </ul>
@@ -1043,7 +1114,7 @@ Chapter 2: Working with Creational Patterns.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-12-04 19:27:26 -0600
+Last updated 2022-12-04T00:00-06:00
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
