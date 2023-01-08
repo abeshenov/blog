@@ -10,7 +10,7 @@ We will investigate some basic things and try to understand why they are the way
 Sometimes it is also instructive to look at other JVM languages and see how they
 solve typical Java problems. We will notably use link:https://kotlinlang.org/[Kotlin].
 
-This not is a part of link:índex.html[my blog].
+**This note is a part of link:index.html[my blog]**.
 
 Like it or not, a large part of programming concerns
 link:https://en.wikipedia.org/wiki/Data_transfer_object[*data transfer objects*].

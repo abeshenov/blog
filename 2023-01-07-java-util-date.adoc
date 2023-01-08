@@ -12,7 +12,7 @@ link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Cale
 and modern API in the `java.time` package (introduced in Java 8).
 Here we will talk about the legacy part.
 
-This not is a part of link:índex.html[my blog].
+**This note is a part of link:index.html[my blog]**.
 
 Normally our code should not contain `java.util.Date` and `java.util.Calendar`.
 However, some legacy APIs still use `java.util.Date` to represent date and time,
