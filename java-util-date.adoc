@@ -444,9 +444,15 @@ refactoring old-school Java code with mutable objects to immutable values.
 
 == Coming soon...
 
-In the next note we will see more about `java.time`, including
-`LocalDate`, `LocalTime`, `LocalDateTime`, `OffsetDateTime`,
-`ZonedDateTime`.
+In the next note we will see more about
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/package-summary.html[`java.time`],
+including
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Instant.html[`Instant`]
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/LocalDate.html[`LocalDate`]
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/LocalTime.html[`LocalTime`]
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/LocalDateTime.html[`LocalDateTime`]
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/OffsetDateTime.html[`OffsetDateTime`]
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/ZonedDateTime.html[`ZonedDateTime`].
 Formatting and parsing is of course a common concern, so we will discuss that.
 Another interesting topic is
 link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Clock.html[`java.time.Clock`]. It allows to control the time
