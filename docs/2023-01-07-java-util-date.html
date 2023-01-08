@@ -517,9 +517,23 @@ $ ==&gt; java.util.GregorianCalendar[
 <h2 id="_other_languages">3. Other languages</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Conventions like January being 0 and December being 11,
-or Sunday being 0 and Saturday being 6 were not invented by Java.
-They can be found in C/C++ code.</p>
+<p>Conventions like</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>0-based month numbering (January = 0, December = 11),</p>
+</li>
+<li>
+<p>Sunday being 0 and Saturday being 6,</p>
+</li>
+<li>
+<p>1900-based year numbering,</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>were not invented by Java. They were already common in C/C++.</p>
 </div>
 <div class="paragraph">
 <p>JavaScript also has a class
@@ -677,6 +691,11 @@ $ ==&gt; 2023-01-30T16:20:00</code></pre>
 </div>
 <div class="paragraph">
 <p>There are no setters.</p>
+</div>
+<div class="paragraph">
+<p>Another issue is that <code>java.util.Date</code> is not final. (It has a subclass
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/Date.html"><code>java.sql.Date</code></a>.)
+Classes in the <code>java.time</code> API are final, as they should be.</p>
 </div>
 </div>
 </div>

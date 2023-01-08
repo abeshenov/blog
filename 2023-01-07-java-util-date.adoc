@@ -20,6 +20,7 @@ and even some widely used libraries are reluctant to move to `java.time`.
 
 image::2023-01-07-java-util-date-cover.jpg[]
 
+
 == Introducing java.util.Date
 
 `java.util.Date` is a very old class. Some of its methods were deprecated
@@ -305,9 +306,13 @@ $ ==> java.util.GregorianCalendar[
 
 == Other languages
 
-Conventions like January being 0 and December being 11,
-or Sunday being 0 and Saturday being 6 were not invented by Java.
-They can be found in C/C++ code.
+Conventions like
+
+- 0-based month numbering (January = 0, December = 11),
+- Sunday being 0 and Saturday being 6,
+- 1900-based year numbering,
+
+were not invented by Java. They were already common in C/C++.
 
 JavaScript also has a class
 link:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date[`Date`]
@@ -424,6 +429,10 @@ Classes in `java.time` defines getter, e.g. `LocalDateTime` has
 `getNano()`.
 
 There are no setters.
+
+Another issue is that `java.util.Date` is not final. (It has a subclass
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/Date.html[`java.sql.Date`].)
+Classes in the `java.time` API are final, as they should be.
 
 
 == Summary
