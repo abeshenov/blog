@@ -5,3 +5,15 @@ Here I will publish some notes about JVM-related technologies.
 - `2023-01-08` : link:2023-01-08-serviceloader.html[java.util.ServiceLoader]
 - `2023-01-07` : link:2023-01-07-java-util-date.html[Working with date and time in Java: Legacy java.util.Date]
 - `2022-12-04` : link:2022-12-04-data-classes.html[Data transfer objects, records, and data classes]
+
+
+== Useful links
+
+- link:https://openjdk.org/[OpenJDK]
+- link:https://docs.oracle.com/en/java/javase/19/[JDK 19 Documentation]
+- link:https://kotlinlang.org/[Kotlin]
+- link:https://clojure.org/[Clojure]
+- link:https://www.scala-lang.org/[Scala]
+- link:https://sdkman.io/[SDKMAN!]
+- link:https://gradle.org/[Gradle]
+- link:https://www.jetbrains.com/idea/[IntelliJ IDEA]
