@@ -142,7 +142,7 @@ For this, Java 8 introduced `toInstant()` method:
 [source, text]
 ----
 jshell> date.toInstant()
-$ ==> 2023-01-07T22:20:02Z
+$ ==> 2023-01-07T22:20:00Z
 ----
 
 `Instant` stores *time instant*, i.e. a single point on the time-line.
@@ -223,10 +223,10 @@ on `Instant` or `LocalDateTime`.
 [source, text]
 ----
 jshell> date.toInstant().atOffset(ZoneOffset.ofHours(-6))
-$ ==> 2023-01-07T16:20:02-06:00
+$ ==> 2023-01-07T16:20:00-06:00
 
 jshell> date.toInstant().atZone(ZoneId.of("America/Mexico_City"))
-$ ==> 2023-01-07T16:20:02-06:00[America/Mexico_City]
+$ ==> 2023-01-07T16:20:00-06:00[America/Mexico_City]
 
 jshell> LocalDate.of(2023, Month.JANUARY, 7)
             .atStartOfDay()

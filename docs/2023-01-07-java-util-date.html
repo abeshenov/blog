@@ -325,7 +325,7 @@ For this, Java 8 introduced <code>toInstant()</code> method:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; date.toInstant()
-$ ==&gt; 2023-01-07T22:20:02Z</code></pre>
+$ ==&gt; 2023-01-07T22:20:00Z</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -431,10 +431,10 @@ on <code>Instant</code> or <code>LocalDateTime</code>.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">jshell&gt; date.toInstant().atOffset(ZoneOffset.ofHours(-6))
-$ ==&gt; 2023-01-07T16:20:02-06:00
+$ ==&gt; 2023-01-07T16:20:00-06:00
 
 jshell&gt; date.toInstant().atZone(ZoneId.of("America/Mexico_City"))
-$ ==&gt; 2023-01-07T16:20:02-06:00[America/Mexico_City]
+$ ==&gt; 2023-01-07T16:20:00-06:00[America/Mexico_City]
 
 jshell&gt; LocalDate.of(2023, Month.JANUARY, 7)
             .atStartOfDay()
