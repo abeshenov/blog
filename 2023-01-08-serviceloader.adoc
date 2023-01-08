@@ -35,6 +35,8 @@ interface Service {
 }
 ----
 
+Again, normally we should define services with pure functions.
+
 
 == Creating a service provider
 
