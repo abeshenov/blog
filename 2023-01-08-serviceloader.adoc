@@ -189,7 +189,10 @@ Also note how we construct the ClassLoader:
 
 [source, kotlin]
 ----
-val classLoader: ClassLoader = URLClassLoader(arrayOf(jarFile.toURI().toURL()), javaClass.classLoader)
+val classLoader: ClassLoader = URLClassLoader(
+    arrayOf(jarFile.toURI().toURL()),
+    javaClass.classLoader
+)
 ----
 
 Here the parent ClassLoader is `javaClass.classLoader`, which is not necessarily

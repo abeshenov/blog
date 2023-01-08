@@ -373,7 +373,10 @@ we pass to our <code>ServiceLoader</code> should be aware of the required classe
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val classLoader: ClassLoader = URLClassLoader(arrayOf(jarFile.toURI().toURL()), javaClass.classLoader)</code></pre>
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">val classLoader: ClassLoader = URLClassLoader(
+    arrayOf(jarFile.toURI().toURL()),
+    javaClass.classLoader
+)</code></pre>
 </div>
 </div>
 <div class="paragraph">
