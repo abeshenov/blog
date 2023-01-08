@@ -145,9 +145,10 @@ table.tableblock, th.tableblock, td.tableblock {
 <li><a href="#_creating_a_service">1. Creating a service</a></li>
 <li><a href="#_creating_a_service_provider">2. Creating a service provider</a></li>
 <li><a href="#_loading_a_service_in_runtime">3. Loading a service in runtime</a></li>
-<li><a href="#_loading_classes_from_service_implementations">4. Loading classes from service implementations</a></li>
-<li><a href="#_security_concerns">5. Security concerns</a></li>
-<li><a href="#_conclusion">6. Conclusion</a></li>
+<li><a href="#_language_for_implementing_services">4. Language for implementing services</a></li>
+<li><a href="#_loading_classes_from_service_implementations">5. Loading classes from service implementations</a></li>
+<li><a href="#_security_concerns">6. Security concerns</a></li>
+<li><a href="#_conclusion">7. Conclusion</a></li>
 </ul>
 </div>
 </div>
@@ -180,8 +181,8 @@ for any language targeting the JVM.</p>
 <div class="paragraph">
 <p>In this setting, <strong>service</strong> is any interface. We will define it in a separate
 <code>api</code> package. Normally we would prefer our interfaces to have pure functions.
-For simplicity, we will consider a dummy service with a funcion with side
-effect:</p>
+For simplicity, we will consider
+<a href="https://github.com/abeshenov/serviceloader-example/blob/main/api/src/main/kotlin/org/cadadr/serviceloader/api/Service.kt">a dummy service with a function with side effect</a>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -199,7 +200,7 @@ interface Service {
 <div class="sectionbody">
 <div class="paragraph">
 <p>Now a <strong>service provider</strong> should be an implementation of our service interface.
-Let&#8217;s create it:</p>
+<a href="https://github.com/abeshenov/serviceloader-example/blob/main/hello-world-service/src/main/kotlin/org/cadadr/serviceloader/helloworld/HelloWorldService.kt">Let&#8217;s create it</a>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -216,7 +217,7 @@ class HelloWorldService : Service {
 </div>
 <div class="paragraph">
 <p>Now one important detail: we need to create a resource file
-<code>META-INF/services/org.cadadr.serviceloader.api.Service</code>
+<a href="https://github.com/abeshenov/serviceloader-example/blob/main/hello-world-service/src/main/resources/META-INF/services/org.cadadr.serviceloader.api.Service"><code>META-INF/services/org.cadadr.serviceloader.api.Service</code></a>
 with the following contents:</p>
 </div>
 <div class="listingblock">
@@ -235,8 +236,10 @@ with the following contents:</p>
 <div class="paragraph">
 <p>By default, this will create a file
 <code>hello-world-service/build/libs/hello-world-service.jar</code>.
-The output destination can be configured, but let&#8217;s leave it like that.
-Move the JAR manually to the application directory:</p>
+The output destination can be configured, but let&#8217;s leave it like that.</p>
+</div>
+<div class="paragraph">
+<p>Move JAR manually to the application directory:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -261,8 +264,9 @@ contains org.cadadr.serviceloader.helloworld</code></pre>
 <p>Indeed, we didn&#8217;t provide module information via a <code>module-info.java</code>,
 so we have an <strong>automatic module</strong>. Thanks to our resource file,
 it also knows that we provide the service
-<code>org.cadadr.serviceloader.api.Service</code> via
-<code>org.cadadr.serviceloader.helloworld.HelloWorldService</code>.</p>
+<a href="https://github.com/abeshenov/serviceloader-example/blob/main/api/src/main/kotlin/org/cadadr/serviceloader/api/Service.kt"><code>org.cadadr.serviceloader.api.Service</code></a>
+via
+<a href="https://github.com/abeshenov/serviceloader-example/blob/main/hello-world-service/src/main/kotlin/org/cadadr/serviceloader/helloworld/HelloWorldService.kt"><code>org.cadadr.serviceloader.helloworld.HelloWorldService</code></a>.</p>
 </div>
 </div>
 </div>
@@ -270,7 +274,8 @@ it also knows that we provide the service
 <h2 id="_loading_a_service_in_runtime">3. Loading a service in runtime</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Here is an example code for loading a service from JAR in runtime:</p>
+<p>Here is an
+<a href="https://github.com/abeshenov/serviceloader-example/blob/main/app/src/main/kotlin/org/cadadr/serviceloader/app/App.kt">example code for loading a service from JAR in runtime</a>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -290,8 +295,12 @@ class App : Runnable {
             exitProcess(1)
         }
 
-        val classLoader: ClassLoader = URLClassLoader(arrayOf(jarFile.toURI().toURL()), javaClass.classLoader)
-        val serviceLoader: ServiceLoader&lt;Service&gt; = ServiceLoader.load(Service::class.java, classLoader)
+        val classLoader: ClassLoader = URLClassLoader(
+            arrayOf(jarFile.toURI().toURL()),
+            javaClass.classLoader
+        )
+
+        val serviceLoader = ServiceLoader.load(Service::class.java, classLoader)
         val service = serviceLoader.first()
 
         service.applyAction()
@@ -319,10 +328,34 @@ fun main() {
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Hello, World!</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p><strong>Voilà !</strong></p>
+</div>
+<div class="paragraph">
+<p>Note that <code>:hello-world-service</code> project depends on <code>:api</code>.
+It doesn&#8217;t know anything about <code>:app</code>. Similarly, <code>:app</code> depends on
+<code>:api</code> and doesn&#8217;t know about <code>:hello-world-service</code>.</p>
+</div>
+<div class="paragraph">
+<p>In a real project, common API inside <code>:api</code> would be versioned appropriately
+to ensure API compatibility.</p>
+</div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_loading_classes_from_service_implementations">4. Loading classes from service implementations</h2>
+<h2 id="_language_for_implementing_services">4. Language for implementing services</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In our sample project we implemented everything in Kotlin.
+In other cases, it may be convenient to have the core system e.g. in Java
+and implement separate services in Clojure, Scala, Groovy, or again in Kotlin.
+Language is not important, we only need to provide an implementation for
+a given interface.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_loading_classes_from_service_implementations">5. Loading classes from service implementations</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Our example is very simple, but in a realistic scenario, a particular service
@@ -330,7 +363,7 @@ provider may have its own dependencies. In this case the <code>ClassLoader</code
 we pass to our <code>ServiceLoader</code> should be aware of the required classes.</p>
 </div>
 <div class="paragraph">
-<p>One way to achieve that is to add necessary runtime dependencies to <code>app</code>.</p>
+<p>One way to achieve that is to add necessary runtime dependencies to <code>:app</code>.</p>
 </div>
 <div class="paragraph">
 <p>Also note how we construct the ClassLoader:</p>
@@ -342,20 +375,22 @@ we pass to our <code>ServiceLoader</code> should be aware of the required classe
 </div>
 <div class="paragraph">
 <p>Here the parent ClassLoader is <code>javaClass.classLoader</code>, which is not necessarily
-the default ClassLoader.</p>
+the default ClassLoader. Beware that when a class can&#8217;t be loaded, <code>ServiceLoader</code>
+comes back empty.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_security_concerns">5. Security concerns</h2>
+<h2 id="_security_concerns">6. Security concerns</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The security issues with this mechanism are rather obvious.
-When loading a service, we basically execute arbitrary code, so all
-<strong>the above can only be used with 100% trusted code</strong>.</p>
+<strong>This is not secure at all</strong>.
+When loading a service, we basically execute arbitrary code, so
+<strong>all the above can be only used with 100% trusted code</strong>.</p>
 </div>
 <div class="paragraph">
-<p>Earlier in Java there was an attempts to control security for loaded classes
+<p>Earlier in Java there was an attempt to control the security of class loading
 via <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/SecurityManager.html"><code>java.lang.SecurityManager</code></a>.
 However, it was <a href="https://openjdk.org/jeps/411">deprecated for removal</a>.
 There is no reliable mechanism in Java to securely load classes in runtime.</p>
@@ -363,16 +398,16 @@ There is no reliable mechanism in Java to securely load classes in runtime.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_conclusion">6. Conclusion</h2>
+<h2 id="_conclusion">7. Conclusion</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>We saw here how <strong>service loaders</strong> work in Java.
 This mechanism allows to define a <strong>service interface</strong> and then load
-its implementations via a class loader.</p>
+its implementations from <strong>service providers</strong> via a <strong>service loader</strong>.</p>
 </div>
 <div class="paragraph">
 <p>This is a powerful mechanism which allows us to extend program logic
-dynamically.</p>
+dynamically. It should be used with care.</p>
 </div>
 </div>
 </div>

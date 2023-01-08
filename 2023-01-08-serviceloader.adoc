@@ -1,0 +1,218 @@
+= java.util.ServiceLoader
+:author: Alexey Beshenov
+:docdatetime: 2023-01-08T00:00-06:00
+:source-highlighter: highlightjs
+:highlightjs-languages: kotlin, shell
+:toc:
+
+In this installment of my JVM notes I would like to explore
+link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html[`java.util.ServiceLoader`].
+It will allow us to embrace the dynamic aspect of the Java Virtual Machine.
+We will write code in Kotlin, but the described mechanism works the same
+for any language targeting the JVM.
+
+**This note is a part of link:index.html[my blog]**.
+
+**Source code on GitHub: https://github.com/abeshenov/serviceloader-example**
+
+
+image::2023-01-08-serviceloader-cover.jpg[]
+
+
+== Creating a service
+
+In this setting, **service** is any interface. We will define it in a separate
+`api` package. Normally we would prefer our interfaces to have pure functions.
+For simplicity, we will consider
+link:https://github.com/abeshenov/serviceloader-example/blob/main/api/src/main/kotlin/org/cadadr/serviceloader/api/Service.kt[a dummy service with a function with side effect]:
+
+[source, kotlin]
+----
+package org.cadadr.serviceloader.api
+
+interface Service {
+    fun applyAction()
+}
+----
+
+
+== Creating a service provider
+
+Now a **service provider** should be an implementation of our service interface.
+link:https://github.com/abeshenov/serviceloader-example/blob/main/hello-world-service/src/main/kotlin/org/cadadr/serviceloader/helloworld/HelloWorldService.kt[Let's create it]:
+
+[source, kotlin]
+----
+package org.cadadr.serviceloader.helloworld
+
+import org.cadadr.serviceloader.api.Service
+
+class HelloWorldService : Service {
+    override fun applyAction() {
+        println("Hello, World!")
+    }
+}
+----
+
+Now one important detail: we need to create a resource file
+link:https://github.com/abeshenov/serviceloader-example/blob/main/hello-world-service/src/main/resources/META-INF/services/org.cadadr.serviceloader.api.Service[`META-INF/services/org.cadadr.serviceloader.api.Service`]
+with the following contents:
+
+[source, text]
+----
+org.cadadr.serviceloader.helloworld.HelloWorldService
+----
+
+We can now package our service provider in a JAR:
+
+[source, shell]
+----
+./gradlew hello-world-service:jar
+----
+
+By default, this will create a file
+`hello-world-service/build/libs/hello-world-service.jar`.
+The output destination can be configured, but let's leave it like that.
+
+Move JAR manually to the application directory:
+
+[source, shell]
+----
+cp hello-world-service/build/libs/hello-world-service.jar app
+----
+
+Let's inspect this JAR:
+
+[source, text]
+----
+$ jar --file app/hello-world-service.jar --describe-module
+No module descriptor found. Derived automatic module.
+
+hello.world.service automatic
+requires java.base mandated
+provides org.cadadr.serviceloader.api.Service with org.cadadr.serviceloader.helloworld.HelloWorldService
+contains org.cadadr.serviceloader.helloworld
+----
+
+Indeed, we didn't provide module information via a `module-info.java`,
+so we have an **automatic module**. Thanks to our resource file,
+it also knows that we provide the service
+link:https://github.com/abeshenov/serviceloader-example/blob/main/api/src/main/kotlin/org/cadadr/serviceloader/api/Service.kt[`org.cadadr.serviceloader.api.Service`]
+via
+link:https://github.com/abeshenov/serviceloader-example/blob/main/hello-world-service/src/main/kotlin/org/cadadr/serviceloader/helloworld/HelloWorldService.kt[`org.cadadr.serviceloader.helloworld.HelloWorldService`].
+
+
+== Loading a service in runtime
+
+Here is an
+link:https://github.com/abeshenov/serviceloader-example/blob/main/app/src/main/kotlin/org/cadadr/serviceloader/app/App.kt[example code for loading a service from JAR in runtime]:
+
+[source, kotlin]
+----
+import java.io.File
+import java.net.URLClassLoader
+import java.util.ServiceLoader
+
+import org.cadadr.serviceloader.api.Service
+import kotlin.system.exitProcess
+
+class App : Runnable {
+    override fun run() {
+        val jarFile = File("hello-world-service.jar")
+
+        if (!jarFile.exists()) {
+            System.err.println("File ${jarFile.absolutePath} doesn't exist")
+            exitProcess(1)
+        }
+
+        val classLoader: ClassLoader = URLClassLoader(
+            arrayOf(jarFile.toURI().toURL()),
+            javaClass.classLoader
+        )
+
+        val serviceLoader = ServiceLoader.load(Service::class.java, classLoader)
+        val service = serviceLoader.first()
+
+        service.applyAction()
+    }
+}
+
+fun main() {
+    App().run()
+}
+----
+
+We run this code with
+
+[source, shell]
+----
+./gradlew app:run
+----
+
+As a result, it will print
+
+[source, shell]
+----
+Hello, World!
+----
+
+*Voilà !*
+
+Note that `:hello-world-service` project depends on `:api`.
+It doesn't know anything about `:app`. Similarly, `:app` depends on
+`:api` and doesn't know about `:hello-world-service`.
+
+In a real project, common API inside `:api` would be versioned appropriately
+to ensure API compatibility.
+
+
+== Language for implementing services
+
+In our sample project we implemented everything in Kotlin.
+In other cases, it may be convenient to have the core system e.g. in Java
+and implement separate services in Clojure, Scala, Groovy, or again in Kotlin.
+Language is not important, we only need to provide an implementation for
+a given interface.
+
+
+== Loading classes from service implementations
+
+Our example is very simple, but in a realistic scenario, a particular service
+provider may have its own dependencies. In this case the `ClassLoader` that
+we pass to our `ServiceLoader` should be aware of the required classes.
+
+One way to achieve that is to add necessary runtime dependencies to `:app`.
+
+Also note how we construct the ClassLoader:
+
+[source, kotlin]
+----
+val classLoader: ClassLoader = URLClassLoader(arrayOf(jarFile.toURI().toURL()), javaClass.classLoader)
+----
+
+Here the parent ClassLoader is `javaClass.classLoader`, which is not necessarily
+the default ClassLoader. Beware that when a class can't be loaded, `ServiceLoader`
+comes back empty.
+
+
+== Security concerns
+
+The security issues with this mechanism are rather obvious.
+**This is not secure at all**.
+When loading a service, we basically execute arbitrary code, so
+**all the above can be only used with 100% trusted code**.
+
+Earlier in Java there was an attempt to control the security of class loading
+via link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/SecurityManager.html[`java.lang.SecurityManager`].
+However, it was link:https://openjdk.org/jeps/411[deprecated for removal].
+There is no reliable mechanism in Java to securely load classes in runtime.
+
+
+== Conclusion
+
+We saw here how **service loaders** work in Java.
+This mechanism allows to define a **service interface** and then load
+its implementations from **service providers** via a **service loader**.
+
+This is a powerful mechanism which allows us to extend program logic
+dynamically. It should be used with care.
